@@ -1,10 +1,11 @@
 include ../include.mk
 
-ifeq ($(TYPE),debug)
-DEBUG_FLAGS = -Ddebug +debug_info
-else
-DEBUG_FLAGS =
-endif
+DEBUG_FLAGS = +debug_info
+#ifeq ($(TYPE),debug)
+#DEBUG_FLAGS = -Ddebug +debug_info
+#else
+#DEBUG_FLAGS =
+#endif
 
 include ../vsn.mk
 VSN=$(YAWS_VSN)

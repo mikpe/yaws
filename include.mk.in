@@ -103,8 +103,9 @@ APPSCRIPT = '$$vsn=shift; $$mods=""; while(@ARGV){ $$_=shift; s/^([A-Z].*)$$/\'\
 ../ebin/%.appup: %.appup.src ../vsn.mk Makefile
 	sed -e "s/%VSN%/$(VSN)/g" < $< > $@
 
+SILENT=$(shell if echo ${MAKEFLAGS} | grep "s" -q; then echo "> /dev/null"; fi)
 ../ebin/%.$(EMULATOR): %.erl
-	$(ERLC) $(ERLC_FLAGS) -o ../ebin $<
+	"$(ERLC)" $(ERLC_FLAGS) -o ../ebin $< $(SILENT)
 
 %.$(EMULATOR): %.erl
 	$(ERLC) $(ERLC_FLAGS) $<

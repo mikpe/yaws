@@ -1,7 +1,7 @@
 
 SUBDIRS	=	c_src src man www/shoppingcart www/code doc scripts \
                 examples/src
-include ./include.mk
+-include ./include.mk
 include ./vsn.mk
 
 PKGCONFIG_FILES = yaws.pc
@@ -45,7 +45,7 @@ docs:
 	( cd doc && $(MAKE) docs )
 
 conf_clean:
-	-rm include.mk config.cache config.status config.log yaws.pc \
+	-rm include.mk configure config.cache config.status config.log yaws.pc \
 	test/support/include.mk test/support/include.sh 2> /dev/null
 
 local_install: all

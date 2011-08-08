@@ -5,10 +5,13 @@ include ../vsn.mk
 IMG_EPS = $(wildcard *.eps)
 IMG_PDF = $(IMG_EPS:.eps=.pdf)
 
-all debug:
-	echo "To build the docs, please use make docs before doing make install"
+#all debug:	
+#	echo "To build the docs, please use make docs before doing make install"
+all: docs
 
-docs:	check yaws.ps yaws.pdf
+#docs:	check yaws.ps yaws.pdf
+docs:
+	# do nothing - yaws has pdf-docs
 
 check:
 	@if [ -z "$(DVIPS)" ]; then \
@@ -40,8 +43,9 @@ yaws.dvi:	yaws.tex  $(IMG_EPS)
 	$(COND_PDFLATEX)$(EPSTOPDF) $<
 
 clean:
-	rm  -f *.ps *.dvi *.log *.aux *.pdf *.toc *.beam 2> /dev/null || true
-	rm  -f *.out ../www/yaws.ps ../www/yaws.pdf 2> /dev/null || true
+#	rm  -f *.ps *.dvi *.log *.aux *.pdf *.toc *.beam 2> /dev/null || true
+#	rm  -f *.out ../www/yaws.ps ../www/yaws.pdf 2> /dev/null || true
+	# do nothing - yaws has pdf-docs
 
 install:
 	-install -d $(DESTDIR)$(PREFIX)/share/doc/yaws
