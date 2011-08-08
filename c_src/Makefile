@@ -9,7 +9,8 @@ ifdef WIN32
 	PRIV_FILES=../priv/.foo
 else
 # don't make pam if configured out with --disable-pam
-	PRIV_FILES= ../priv/lib/setuid_drv.$(DLL)  $(EPAM)
+#	PRIV_FILES= ../priv/lib/setuid_drv.$(DLL)  $(EPAM)
+	PRIV_FILES= ../priv/lib/setuid_drv.$(DLL)
 endif
 
 ifeq ($(HAVE_SENDFILE),true)
@@ -20,7 +21,7 @@ endif
 CFLAGS += -I"${ERLDIR}/usr/include"
 
 # and for MacOs + possibly others ...
-CFLAGS += -I/usr/include/pam/ $(EXTRAINCLUDE)
+#CFLAGS += -I/usr/include/pam/ $(EXTRAINCLUDE)
 
 #
 # Targets

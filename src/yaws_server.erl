@@ -22,6 +22,9 @@
 %% External exports
 -export([start_link/1]).
 
+%% called by kcrash:crashmsg/3 and site_state:log/3
+-export([safe_decode_path/1]).
+
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
@@ -35,7 +38,7 @@
 %% internal exports
 -export([gserv/3,acceptor0/2, load_and_run/2, done_or_continue/0,
          accumulate_content/1, deliver_accumulated/5, setup_dirs/1,
-         deliver_dyn_part/8, finish_up_dyn_file/2
+         deliver_dyn_part/8, finish_up_dyn_file/2, gserv_loop/4
         ]).
 
 -export(['GET'/3,
@@ -569,22 +572,22 @@ gserv_loop(GS, Ready, Rnum, Last) ->
     receive
         {From , status} ->
             From ! {self(), GS},
-            gserv_loop(GS, Ready, Rnum, Last);
+            ?MODULE:gserv_loop(GS, Ready, Rnum, Last);
         {_From, next, Accepted} when Ready == [] ->
             close_accepted_if_max(GS,Accepted),
             New = acceptor(GS),
             GS2 = GS#gs{sessions = GS#gs.sessions + 1,
                         connections = GS#gs.connections + 1},
-            gserv_loop(GS2, Ready, Rnum, New);
+            ?MODULE:gserv_loop(GS2, Ready, Rnum, New);
         {_From, next, Accepted} ->
 	    close_accepted_if_max(GS,Accepted),
             [{_Then, R}|RS] = Ready,
             R ! {self(), accept},
  	    GS2 = GS#gs{connections=GS#gs.connections + 1},
-            gserv_loop(GS2, RS, Rnum-1, R);
+            ?MODULE:gserv_loop(GS2, RS, Rnum-1, R);
 	{_From, decrement} ->
  	    GS2 = GS#gs{connections=GS#gs.connections - 1},
- 	    gserv_loop(GS2, Ready, Rnum, Last);
+ 	    ?MODULE:gserv_loop(GS2, Ready, Rnum, Last);
         {From, done_client, Int} ->
             GS2 = if
                       Int == 0 -> GS#gs{connections = GS#gs.connections - 1};
@@ -594,10 +597,10 @@ gserv_loop(GS, Ready, Rnum, Last) ->
             if
                 Rnum == 8 ->
                     From ! {self(), stop},
-                    gserv_loop(GS2, Ready, Rnum, Last);
+                    ?MODULE:gserv_loop(GS2, Ready, Rnum, Last);
                 Rnum < 8 ->
                     %% cache this process for 10 secs
-                    gserv_loop(GS2, [{now(), From} | Ready], Rnum+1, Last)
+                    ?MODULE:gserv_loop(GS2, [{now(), From} | Ready], Rnum+1, Last)
             end;
         {'EXIT', Pid, Reason} ->
             case get(top) of
@@ -617,8 +620,24 @@ gserv_loop(GS, Ready, Rnum, Last) ->
                     foreach(fun(X) -> unlink(X), exit(X, shutdown) end, Ls),
                     exit(noserver);
                 _ ->
-                    gserv_loop(GS#gs{sessions = GS#gs.sessions - 1},
-                               Ready, Rnum, Last)
+                    GS2 = GS#gs{sessions = GS#gs.sessions - 1},
+                    if Pid == Last ->
+                            %% probably died due to new code loaded; if we
+                            %% don't start a new acceptor here we end up with
+                            %% no active acceptor
+                            error_logger:format("Last acceptor died (~p), "
+                                                "restart it", [Reason]),
+                            New = acceptor(GS),
+                            ?MODULE:gserv_loop(GS2, Ready, Rnum, New);
+                       true ->
+                            case lists:keysearch(Pid, 2, Ready) of
+                                {value, _} ->
+                                    Ready1 = lists:keydelete(Pid, 2, Ready),
+                                    ?MODULE:gserv_loop(GS2, Ready1, Rnum-1, Last);
+                                false ->
+                                    ?MODULE:gserv_loop(GS2, Ready, Rnum, Last)
+                            end
+                    end
             end;
         {From, stop} ->
             unlink(From),
@@ -705,7 +724,7 @@ gserv_loop(GS, Ready, Rnum, Last) ->
                     error_logger:info_msg("Updating sconf for server ~s~n",
                                           [yaws:sconf_to_srvstr(NewSc2)]),
                     New = acceptor(GS2),
-                    gserv_loop(GS2, Ready2, 0, New)
+                    ?MODULE:gserv_loop(GS2, Ready2, 0, New)
             end;
 
         {delete_sconf, OldSc, From} ->
@@ -731,7 +750,7 @@ gserv_loop(GS, Ready, Rnum, Last) ->
                     error_logger:info_msg("Deleting sconf for server ~s~n",
                                           [yaws:sconf_to_srvstr(OldSc)]),
                     New = acceptor(GS2),
-                    gserv_loop(GS2, Ready2, 0, New)
+                    ?MODULE:gserv_loop(GS2, Ready2, 0, New)
             end;
 
         {add_sconf, From, SC0, Adder} ->
@@ -752,7 +771,7 @@ gserv_loop(GS, Ready, Rnum, Last) ->
             error_logger:info_msg("Adding sconf for server ~s~n",
                                   [yaws:sconf_to_srvstr(SC)]),
             New = acceptor(GS2),
-            gserv_loop(GS2, Ready2, 0, New);
+            ?MODULE:gserv_loop(GS2, Ready2, 0, New);
         {check_cert_changed, From} ->
             Changed =
                 case GS#gs.ssl of
@@ -773,7 +792,7 @@ gserv_loop(GS, Ready, Rnum, Last) ->
             if
                 Changed == no ->
                     From ! {self(), no},
-                    gserv_loop(GS, Ready, Rnum, Last);
+                    ?MODULE:gserv_loop(GS, Ready, Rnum, Last);
                 Changed == yes ->
                     error_logger:info_msg(
                       "Stopping ~s due to cert change\n",
@@ -793,7 +812,7 @@ gserv_loop(GS, Ready, Rnum, Last) ->
             put(gc, GC),
             error_logger:info_msg("Updating gconf \n",[]),
             New = acceptor(GS2),
-            gserv_loop(GS2, Ready2, 0, New)
+            ?MODULE:gserv_loop(GS2, Ready2, 0, New)
     after (10 * 1000) ->
             %% collect old procs, to save memory
             {NowMega, NowSecs, _} = now(),
@@ -807,7 +826,7 @@ gserv_loop(GS, Ready, Rnum, Last) ->
                                               true
                                       end
                               end, Ready),
-            gserv_loop(GS, R2, length(R2), Last)
+            ?MODULE:gserv_loop(GS, R2, length(R2), Last)
     end.
 
 
@@ -935,10 +954,33 @@ filter_false(L) ->
 
 do_accept(GS) when GS#gs.ssl == nossl ->
     ?Debug("wait in accept ... ~n",[]),
+    wait_accept(),
     gen_tcp:accept(GS#gs.l);
 do_accept(GS) when GS#gs.ssl == ssl ->
+    wait_accept(),
     ssl:transport_accept(GS#gs.l).
 
+wait_accept() ->
+    timer:sleep(timeout()).
+
+%% timeout in millisecs until next accept in this process.
+%% do not accept too many new simultaneuos requests if loaded system.
+timeout() ->
+    case statistics(run_queue) of
+	N when N > 100  -> 60000;   %% 1 m
+	N when N > 50   -> 30000;   %% 30 s
+	N when N > 30   -> 10000;   %% 10 s
+	N when N > 20   -> 5000;    %% 5 s
+	N when N > 10   -> 1000;    %% 1 s
+	N when N > 5    -> 100;     %% 100 ms
+	_               -> 0        %% 0
+    end.
+
+%%sleep(I) when I>1,I<1000 -> 
+%%    Timeout = trunc(1000/I),
+%%    receive after Timeout -> true end;
+%%sleep(_) ->
+%%    true.
 
 initial_acceptor(GS) ->
     acceptor(GS).
@@ -969,6 +1011,13 @@ acceptor0(GS, Top) ->
                             ok;
                         {error, closed} ->
                             Top ! {self(), decrement},
+                            exit(normal);
+			{error, esslaccept} ->
+			    %% Don't log SSL esslaccept to error log since it
+			    %% seems this is what we get on portscans and
+			    %% similar
+			    ?Debug("SSL accept failed: ~p~n", [Reason]),
+			    Top ! {self(), decrement},
                             exit(normal);
                         {error, Reason} ->
                             error_logger:format("SSL accept failed: ~p~n",
@@ -1198,6 +1247,9 @@ erase_transients() ->
             ok;
        is_list(I) ->
             erase(),
+	    %% Need to keep init_db in case we do not enter aloop (i.e. init:db)
+	    %% again as R12B-5 requires proc_lib keys in dict while exiting...
+	    put(init_db, I),
             lists:foreach(fun({K,V}) -> put(K,V) end, I)
     end.
 
@@ -2233,11 +2285,12 @@ handle_ut(CliSock, ARG, UT = #urltype{type = appmod}, N) ->
     H = ARG#arg.headers,
     yaws:outh_set_dyn_headers(Req, H, UT),
     {Mod,_} = UT#urltype.data,
+    put(tobbe_snygging, Mod),
     deliver_dyn_part(CliSock,
                      0, "appmod",
                      N,
                      ARG,UT,
-                     fun(A)->Mod:out(A) end,
+                     fun(A)->mod_out(UT#urltype.path,Mod,A) end,
                      fun(A)->finish_up_dyn_file(A, CliSock) end
                     );
 
@@ -2674,7 +2727,7 @@ deliver_dyn_file(CliSock, Bin, [H|T], Arg, UT, N) ->
             {_, Bin2} = skip_data(Bin, NumChars),
             deliver_dyn_part(CliSock, LineNo, YawsFile,
                              N, Arg, UT,
-                             fun(A)->Mod:out(A) end,
+                             fun(A)->mod_out(UT#urltype.path,Mod,A) end,
                              fun(A)->deliver_dyn_file(CliSock,Bin2,T,A,UT,0)
                              end);
         {data, 0} ->
@@ -3399,7 +3452,7 @@ delim_split(_,_,[],Ack,DAcc) ->
 handle_crash(ARG, L) ->
     ?Debug("handle_crash(~p)~n", [L]),
     SC=get(sc),
-    yaws:elog("~s", [L]),
+    %% yaws:elog("~s", [L]),
     yaws:outh_set_status_code(500),
     case catch apply(SC#sconf.errormod_crash, crashmsg, [ARG, SC, L]) of
         {content,MimeType,Cont} ->
@@ -4629,6 +4682,13 @@ safe_ehtml_expand(X) ->
 err_pre(R) ->
     io_lib:format("<pre> ~n~p~n </pre>~n", [R]).
 
+mod_out(Path, Mod, A) ->
+    Start  = erlang:now(),
+    Result = Mod:out(A),
+    Stop   = erlang:now(),
+    MSecs  = timer:now_diff(Stop, Start) div 1000,
+    op_stat:log({yaws, filename:basename(Path, ".yaws")}, MSecs, ms),
+    Result.
 
 %%mappath/3    (virtual-path to physical-path)
 %%- this returns physical path a URI would map to, taking into consideration

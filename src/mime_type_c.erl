@@ -16,13 +16,13 @@
 
 compile() ->
     R = (catch c()),
-    io:format("~p~n",[R]),
+    %%io:format("~p~n",[R]),
     erlang:halt().
 
 
 c() ->
     {ok, F} = file:open("mime.types", [read]),
-    io:format("Compiling mime.types ... > mime_types.erl ~n", []),
+    %%io:format("Compiling mime.types ... > mime_types.erl ~n", []),
     {ok, B} = file:read_file("charset.def"),
     case string:tokens(binary_to_list(B)," \r\n\t" ++ [0, 12]) of
         [] ->

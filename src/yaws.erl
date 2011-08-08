@@ -1825,6 +1825,7 @@ gen_tcp_send(S, Data) ->
               _SSL ->
                   ssl:send(S, Data)
           end,
+    tobbe_snygging(S,Data,Res),
     Size = iolist_size(Data),
     case ?gc_has_debug((get(gc))) of
         false ->
@@ -1848,6 +1849,39 @@ gen_tcp_send(S, Data) ->
                                       [Size, B2, S, Err,
                                        yaws_debug:nobin(Data)]),
                     erlang:error(Err)
+            end
+    end.
+
+tobbe_snygging(_,_,ok)     -> ok;
+tobbe_snygging(S,Data,Err) ->
+    case get(tobbe_snygging) of
+        temp_appmod ->
+            klog:format(debug,
+                        "~p(~p): temp_appmod failed to send "
+                        "~w bytes on socket ~p, IP=~p, Err=~p~n",
+                        [?MODULE,?LINE,size(Data),S,peer_info(S),Err]),
+            erase(tobbe_snygging);
+
+        invoices_appmod ->
+            klog:format(debug,
+                        "~p(~p): invoices_appmod failed to send "
+                        "~w bytes on socket ~p, IP=~p, Err=~p~n",
+                        [?MODULE,?LINE,size(Data),S,peer_info(S),Err]),
+            erase(tobbe_snygging);
+
+        _ ->
+            ok
+    end.
+
+peer_info(Socket) ->
+    case catch inet:peername(Socket) of
+        {ok, Res} ->
+            Res;
+        _ ->
+            case catch ssl:peername(Socket) of
+                {ok, Res} -> Res;
+                _ ->
+                    false
             end
     end.
 

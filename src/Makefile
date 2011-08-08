@@ -1,10 +1,11 @@
 include ../include.mk
 
-ifeq ($(TYPE),debug)
-DEBUG_FLAGS = -Ddebug +debug_info
-else
-DEBUG_FLAGS =
-endif
+DEBUG_FLAGS = +debug_info
+#ifeq ($(TYPE),debug)
+#DEBUG_FLAGS = -Ddebug +debug_info
+#else
+#DEBUG_FLAGS =
+#endif
 
 include ../vsn.mk
 VSN=$(YAWS_VSN)
@@ -81,7 +82,6 @@ yaws_generated.erl:	yaws_generated.template ../vsn.mk
 	    ../scripts/gen-yaws-generated true > yaws_generated.erl
 
 yaws_configure.hrl:	 ../vsn.mk ../include.mk
-	set -x; \
 	if [  $(HAVE_SENDFILE) = "true" ]; then \
 		echo "-define(HAVE_SENDFILE, true)." > yaws_configure.hrl; \
 	else touch yaws_configure.hrl; fi
