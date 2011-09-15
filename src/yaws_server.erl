@@ -1021,6 +1021,12 @@ acceptor0(GS, Top) ->
 			    ?Debug("SSL accept failed: esslaccept~n", []),
 			    Top ! {self(), decrement},
                             exit(normal);
+			{error, esslerrssl} ->
+			    %% KLARNA: Don't log SSL esslerrssl to error log as it is noise
+			    %% in our logs
+			    ?Debug("SSL accept failed: esslerrssl~n", []),
+			    Top ! {self(), decrement},
+			    exit(normal);
                         {error, Reason} ->
                             error_logger:format("SSL accept failed: ~p~n",
                                                 [Reason]),
