@@ -1018,7 +1018,7 @@ acceptor0(GS, Top) ->
 			    %% Don't log SSL esslaccept to error log since it
 			    %% seems this is what we get on portscans and
 			    %% similar
-			    ?Debug("SSL accept failed: ~p~n", [Reason]),
+			    ?Debug("SSL accept failed: esslaccept~n", []),
 			    Top ! {self(), decrement},
                             exit(normal);
                         {error, Reason} ->
