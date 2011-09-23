@@ -2293,7 +2293,6 @@ handle_ut(CliSock, ARG, UT = #urltype{type = appmod}, N) ->
     H = ARG#arg.headers,
     yaws:outh_set_dyn_headers(Req, H, UT),
     {Mod,_} = UT#urltype.data,
-    put(tobbe_snygging, Mod),
     deliver_dyn_part(CliSock,
                      0, "appmod",
                      N,
