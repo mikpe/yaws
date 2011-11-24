@@ -1607,6 +1607,9 @@ handle_extension_method("COPY", CliSock, Req, Head) ->
 handle_extension_method(_Method, CliSock, Req, Head) ->
     not_implemented(CliSock, Req, Head).
 
+emergency_fix(RawPath) ->
+  Fix0 = [Chr || Chr <- RawPath, Chr =/= $\\],
+  re:replace(Fix0, "%5[cC]", "", [global, caseless, {return, list}]).
 
 %% Return values:
 %% continue, done, {page, Page}
@@ -1637,7 +1640,7 @@ handle_request(CliSock, ARG, N) ->
     ?Debug("SrvReq=~s~n",[?format_record(Req, http_request)]),
     case Req#http_request.path of
         {abs_path, RawPath} ->
-            case (catch yaws_api:url_decode_q_split(RawPath)) of
+            case (catch yaws_api:url_decode_q_split(emergency_fix(RawPath))) of
                 {'EXIT', _} ->   %% weird broken cracker requests
                     deliver_400(CliSock, Req);
                 {DecPath, QueryPart} ->
