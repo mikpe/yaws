@@ -74,10 +74,13 @@ handler(Args, Handler) ->
 
 %%% we should be called from yaws page or module
 handler(Args, Handler, Type) when is_record(Args, arg) ->
+    State = Args#arg.state,
     case parse_request(Args) of
         ok ->
+            op_stat_log({xmlrpc,parse_request,ok}, State),
             handle_payload(Args, Handler, Type);
         {status, StatusCode} ->        %% cannot parse request
+            op_stat_log({xmlrpc,parse_request,error,StatusCode}, State),
             send(Args, StatusCode)
     end.
 
@@ -105,18 +108,22 @@ handle_payload(Args, Handler, Type) ->
     Payload = binary_to_list(Args#arg.clidata),
     %%    ?Debug("xmlrpc encoded call ~p ~n", [Payload]),
     klog:format(xmlrpc, "XMLRPC: ~s\n", [Payload]),
+    State = Args#arg.state,
     case xmlrpc_decode:payload(Payload) of
         {ok, DecodedPayload} ->
             %%        ?Debug("xmlrpc decoded call ~p ~n", [DecodedPayload]),
+            op_stat_log({xmlrpc,decode_payload,ok}, State),
             eval_payload(Args, Handler, DecodedPayload, Type);
         {error, Reason} ->
 	    ErrMsg = xmlrpc_http:handle_xmlprc_error(Payload, Reason),
+            op_stat_log({xmlrpc,decode_payload,error,400}, State),
 	    send(Args, 400, ErrMsg, [])
     end.
 
 %%%%%%
 %%% call handler/3 and provide session support
 eval_payload(Args, {M, F}, Payload, {session, CookieName}) ->
+    State = Args#arg.state,
     {SessionValue, Cookie} =
         case yaws_api:find_cookie_val(CookieName,
                                       (Args#arg.headers)#headers.cookie) of
@@ -135,12 +142,15 @@ eval_payload(Args, {M, F}, Payload, {session, CookieName}) ->
     case catch M:F(Args#arg.state, Payload, SessionValue) of
         {'EXIT', Reason} ->
             ?ERROR_LOG({M, F, {'EXIT', Reason}}),
+            op_stat_log({xmlrpc,decode_payload,error,500}, State),
             send(Args, 500);
         {error, Reason} ->
             ?ERROR_LOG({M, F, Reason}),
+            op_stat_log({xmlrpc,decode_payload,error,500}, State),
             send(Args, 500);
         {false, ResponsePayload} ->
             %% do not have updates in session data
+            op_stat_log({xmlrpc,decode_payload,ok,200}, State),
             encode_send(Args, 200, ResponsePayload, []);
         {true, _NewTimeout, NewSessionValue, ResponsePayload} ->
             %% be compatible with xmlrpc module
@@ -165,6 +175,7 @@ eval_payload(Args, {M, F}, Payload, {session, CookieName}) ->
                                  [] %% nothing to add to yaws data
                          end
                  end,
+            op_stat_log({xmlrpc,decode_payload,ok,200}, State),
             encode_send(Args, 200, ResponsePayload, CO)
     end;
 
@@ -172,16 +183,21 @@ eval_payload(Args, {M, F}, Payload, {session, CookieName}) ->
 %%% call handler/2 without session support
 %%%
 eval_payload(Args, {M, F}, Payload, simple) ->
-    case catch M:F(Args#arg.state, Payload) of
+    State = Args#arg.state,
+    case catch M:F(State, Payload) of
         {'EXIT', Reason} ->
             ?ERROR_LOG({M, F, {'EXIT', Reason}}),
+            op_stat_log({xmlrpc,decode_payload,error,500}, State),
             send(Args, 500);
         {error, Reason} ->
             ?ERROR_LOG({M, F, Reason}),
+            op_stat_log({xmlrpc,decode_payload,error,500}, State),
             send(Args, 500);
         {false, ResponsePayload} ->
+            op_stat_log({xmlrpc,decode_payload,ok,200}, State),
             encode_send(Args, 200, ResponsePayload, []);
         {true, _NewTimeout, _NewState, ResponsePayload} ->
+            op_stat_log({xmlrpc,decode_payload,ok,200}, State),
             encode_send(Args, 200, ResponsePayload, [])
     end.
 
@@ -212,3 +228,5 @@ send(_Args, StatusCode, Payload, AddOnData) ->
         ] ++ AddOnData,
     A.
 
+op_stat_log(Name, State) ->
+  op_stat:log(Name, 1, count, xmlrpc:cbs_uid(State)).
