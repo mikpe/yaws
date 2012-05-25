@@ -226,3 +226,5 @@ send(_Args, StatusCode, Payload, AddOnData) ->
         ] ++ AddOnData,
     A.
 
+op_stat_log(Name, State) ->
+  op_stat:log(Name, 1, count, xmlrpc:cbs_uuid(State)).
