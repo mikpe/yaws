@@ -182,7 +182,8 @@ eval_payload(Args, {M, F}, Payload, {session, CookieName}) ->
 %%% call handler/2 without session support
 %%%
 eval_payload(Args, {M, F}, Payload, simple) ->
-    case catch M:F(Args#arg.state, Payload) of
+    State = Args#arg.state,
+    case catch M:F(State, Payload) of
         {'EXIT', Reason} ->
             ?ERROR_LOG({M, F, {'EXIT', Reason}}),
             op_stat_log({xmlrpc,decode_payload,error,500}, State),
