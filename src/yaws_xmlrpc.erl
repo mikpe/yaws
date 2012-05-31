@@ -104,7 +104,7 @@ handle_payload(Args, Handler, Type) ->
     Payload = binary_to_list(Args#arg.clidata),
     %%    ?Debug("xmlrpc encoded call ~p ~n", [Payload]),
     klog:format(xmlrpc, "XMLRPC: ~s\n", [Payload]),
-    State  = add_uuid(Args#arg.state),
+    State  = add_uid(Args#arg.state),
     case xmlrpc_decode:payload(Payload) of
         {ok, DecodedPayload} ->
             %%        ?Debug("xmlrpc decoded call ~p ~n", [DecodedPayload]),
@@ -229,20 +229,16 @@ send(_Args, StatusCode, Payload, AddOnData) ->
 
 %% Added by Klarna. Changes the opaque field. Watch out!  An updated cbs_record
 %% with a dedicated field was not considered due to upgrade issues.
-add_uuid(State) ->
+add_uid(State) ->
   case xmlrpc:cbs_record(State) of
     true ->
-      case catch gen_uuid() of
-        {ok, UUID} -> xmlrpc:cbs_uuid(State, UUID);
+      case op_stat:generate_uid() of
+        {ok, UID} -> xmlrpc:cbs_uid(State, UID);
         _          -> State
       end;
     _ ->
       State
   end.
 
-%% @doc Use uuid library with UUIDv4 (random).
-gen_uuid() ->
-  {ok, uuid:uuid_to_string(uuid:get_v4())}.
-
 op_stat_log(Name, State) ->
-  op_stat:log(Name, 1, count, xmlrpc:cbs_uuid(State)).
+  op_stat:log(Name, 1, count, xmlrpc:cbs_uid(State)).
