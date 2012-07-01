@@ -76,6 +76,8 @@
                    cacertfile
                   }).
 
+-define(MAX_READY, 0).  % maximum number of processes in acceptor pool
+
 -define(elog(X,Y), error_logger:info_msg("*elog ~p:~p: " X,
                                          [?MODULE, ?LINE | Y])).
 
@@ -583,12 +585,11 @@ gserv_loop(GS, Ready, Rnum, Last) ->
                       Int > 0  -> GS#gs{reqs = GS#gs.reqs+Int,
                                         connections = GS#gs.connections - 1}
                   end,
-            PoolSize = (GS#gs.gconf)#gconf.acceptor_pool_size,
             if
-                Rnum == PoolSize ->
+                Rnum == ?MAX_READY ->
                     From ! {self(), stop},
                     ?MODULE:gserv_loop(GS2, Ready, Rnum, Last);
-                Rnum < PoolSize ->
+                Rnum < ?MAX_READY ->
                     %% cache this process for 10 secs
                     ?MODULE:gserv_loop(GS2, [{now(), From} | Ready], Rnum+1, Last)
             end;
