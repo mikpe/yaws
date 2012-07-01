@@ -2309,7 +2309,7 @@ handle_ut(CliSock, ARG, UT = #urltype{type = appmod}, N) ->
                      0, "appmod",
                      N,
                      ARG,UT,
-                     fun(A)->Mod:out(A) end,
+                     fun(A)->mod_out(UT#urltype.path,Mod,A) end,
                      fun(A)->finish_up_dyn_file(A, CliSock) end
                     );
 
@@ -2767,7 +2767,7 @@ deliver_dyn_file(CliSock, Bin, [H|T], Arg, UT, N) ->
             {_, Bin2} = skip_data(Bin, NumChars),
             deliver_dyn_part(CliSock, LineNo, YawsFile,
                              N, Arg, UT,
-                             fun(A)->Mod:out(A) end,
+                             fun(A)->mod_out(UT#urltype.path,Mod,A) end,
                              fun(A)->deliver_dyn_file(CliSock,Bin2,T,A,UT,0)
                              end);
         {data, 0} ->
@@ -4819,6 +4819,14 @@ safe_ehtml_expand(X) ->
 
 err_pre(R) ->
     io_lib:format("<pre> ~n~p~n </pre>~n", [R]).
+
+mod_out(Path, Mod, A) ->
+    Start  = erlang:now(),
+    Result = Mod:out(A),
+    Stop   = erlang:now(),
+    MSecs  = timer:now_diff(Stop, Start) div 1000,
+    op_stat:log({yaws, filename:basename(Path, ".yaws")}, MSecs, ms),
+    Result.
 
 %% mappath/3    (virtual-path to physical-path)
 %% - this returns physical path a URI would map to, taking into consideration
