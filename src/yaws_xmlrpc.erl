@@ -104,6 +104,7 @@ parse_request(Args) -> %% {{{
 handle_payload(Args, Handler, Type) ->
     Payload = binary_to_list(Args#arg.clidata),
     %%    ?Debug("xmlrpc encoded call ~p ~n", [Payload]),
+    klog:format(xmlrpc, "XMLRPC: ~s\n", [Payload]),
     case xmlrpc_decode:payload(Payload) of
         {ok, DecodedPayload} ->
             %%        ?Debug("xmlrpc decoded call ~p ~n", [DecodedPayload]),
