@@ -1979,12 +1979,13 @@ handle_auth(ARG, _Auth_H, Auth_methods=#auth{users=[],pam=false,mod=[]}, Ret) ->
 handle_auth(ARG, Auth_H, Auth_methods = #auth{mod = Mod}, Ret) when Mod /= [] ->
     case catch Mod:auth(ARG, Auth_methods) of
         {'EXIT', Reason} ->
+            ST = erlang:get_stacktrace(),
             L = ?F("authmod crashed ~n~p:auth(~p, ~n ~p) \n"
                    "Reason: ~p~n"
                    "Stack: ~p~n",
                    [Mod, ARG, Auth_methods, Reason,
-                    erlang:get_stacktrace()]),
-            handle_crash(ARG, L),
+                    ST]),
+            handle_crash(ARG, L, ST),
             CliSock = case yaws_api:get_sslsocket(ARG#arg.clisock) of
                           {ok, SslSock} -> SslSock;
                           undefined     -> ARG#arg.clisock
@@ -3307,12 +3308,13 @@ handle_out_reply(ok, _LineNo, _YawsFile, _UT, _ARG) ->
     ok;
 
 handle_out_reply({'EXIT', Err}, LineNo, YawsFile, _UT, ARG) ->
+    ST = erlang:get_stacktrace(),
     L = ?F("~n~nERROR erlang  code  crashed:~n "
            "File: ~s:~w~n"
            "Reason: ~p~nReq: ~p~n"
            "Stack: ~p~n",
-           [YawsFile, LineNo, Err, ARG#arg.req, erlang:get_stacktrace()]),
-    handle_crash(ARG, L);
+           [YawsFile, LineNo, Err, ARG#arg.req, ST]),
+    handle_crash(ARG, L, ST);
 
 handle_out_reply({throw, Class, Exc}, LineNo, YawsFile, _UT, ARG) ->
     L = ?F("~n~nERROR erlang code threw an uncaught exception:~n "
@@ -3540,6 +3542,11 @@ delim_split(_,_,[],Ack,DAcc) ->
 
 %% Erlang yaws code crashed, display either the
 %% actual crash or a customized error message
+
+%% Allow to pass the log string as well as a stacktrace.
+%% This patch has to be supported by the errormod, otherwise it might crash.
+handle_crash(ARG, L, ST) ->
+  handle_crash(ARG, {L, ST}).
 
 handle_crash(ARG, L) ->
     ?Debug("handle_crash(~p)~n", [L]),
