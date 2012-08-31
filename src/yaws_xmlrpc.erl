@@ -104,7 +104,7 @@ handle_payload(Args, Handler, Type) ->
     Payload = binary_to_list(Args#arg.clidata),
     %%    ?Debug("xmlrpc encoded call ~p ~n", [Payload]),
     klog:format(xmlrpc, "XMLRPC: ~s\n", [Payload]),
-    State  = add_uid(Args#arg.state),
+    State  = Args#arg.state,
     case xmlrpc_decode:payload(Payload) of
         {ok, DecodedPayload} ->
             %%        ?Debug("xmlrpc decoded call ~p ~n", [DecodedPayload]),
@@ -226,19 +226,6 @@ send(_Args, StatusCode, Payload, AddOnData) ->
          {header, {content_length, lists:flatlength(Payload) }}
         ] ++ AddOnData,
     A.
-
-%% Added by Klarna. Changes the opaque field. Watch out!  An updated cbs_record
-%% with a dedicated field was not considered due to upgrade issues.
-add_uid(State) ->
-  case xmlrpc:cbs_record(State) of
-    true ->
-      case op_stat:generate_uid() of
-        {ok, UID} -> xmlrpc:cbs_uid(State, UID);
-        _          -> State
-      end;
-    _ ->
-      State
-  end.
 
 op_stat_log(Name, State) ->
   op_stat:log(Name, 1, count, xmlrpc:cbs_uid(State)).
