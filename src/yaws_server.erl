@@ -955,34 +955,10 @@ filter_false(L) ->
     [X || X <- L, X /= false].
 
 do_accept(GS) when GS#gs.ssl == nossl ->
-    ?Debug("wait in accept ... ~n",[]),
-    wait_accept(),
     gen_tcp:accept(GS#gs.l);
 do_accept(GS) when GS#gs.ssl == ssl ->
-    wait_accept(),
     ssl:transport_accept(GS#gs.l).
 
-wait_accept() ->
-    timer:sleep(timeout()).
-
-%% timeout in millisecs until next accept in this process.
-%% do not accept too many new simultaneuos requests if loaded system.
-timeout() ->
-    case statistics(run_queue) of
-	N when N > 100  -> 60000;   %% 1 m
-	N when N > 50   -> 30000;   %% 30 s
-	N when N > 30   -> 10000;   %% 10 s
-	N when N > 20   -> 5000;    %% 5 s
-	N when N > 10   -> 1000;    %% 1 s
-	N when N > 5    -> 100;     %% 100 ms
-	_               -> 0        %% 0
-    end.
-
-%%sleep(I) when I>1,I<1000 -> 
-%%    Timeout = trunc(1000/I),
-%%    receive after Timeout -> true end;
-%%sleep(_) ->
-%%    true.
 
 initial_acceptor(GS) ->
     acceptor(GS).
