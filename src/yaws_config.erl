@@ -27,6 +27,8 @@
          can_hard_gc/2, can_soft_setconf/4,
          can_soft_gc/2, verify_upgrade_args/2, toks/2]).
 
+-export([validate_cs/2]).
+
 %% where to look for yaws.conf
 paths() ->
     case application:get_env(yaws, config) of
