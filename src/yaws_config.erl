@@ -1593,6 +1593,16 @@ fload(FD, ssl, GC, C, Cs, Lno, Chars) ->
                     io:format("~p~n", [Err2]),
                     {error, ?F("Bad cipherspec at line ~w", [Lno])}
             end;
+        ["protocol_version", '=' | Vsns0] ->
+            try
+                Vsns = [list_to_existing_atom(V) || V <- Vsns0, not is_atom(V)],
+                C2 = C#sconf{
+                       ssl=(C#sconf.ssl)#ssl{protocol_version=Vsns}
+                      },
+                fload(FD, ssl, GC, C2, Cs, Lno+1, Next)
+            catch _:_ ->
+                    {error, ?F("Bad ssl protocol_version at line ~w", [Lno])}
+            end;            
         ['<', "/ssl", '>'] ->
             fload(FD, server, GC, C, Cs, Lno+1, Next);
 

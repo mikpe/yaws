@@ -321,7 +321,8 @@ setup_sconf_ssl(SL, DefaultSSL) ->
               password     = proplists:get_value(password, SSLProps),
               cacertfile   = proplists:get_value(cacertfile, SSLProps),
               ciphers      = proplists:get_value(ciphers, SSLProps),
-              cachetimeout = proplists:get_value(cachetimeout, SSLProps)
+              cachetimeout = proplists:get_value(cachetimeout, SSLProps),
+              protocol_version = proplists:get_value(protocol_version, SSLProps)
              },
             %% Prevent overriding the ssl record's default values!
             SSL2 =

@@ -944,6 +944,11 @@ ssl_listen_opts(GC, SSL) ->
             true ->
                  false
          end,
+         if SSL#ssl.protocol_version /= undefined ->
+                 {versions, SSL#ssl.protocol_version};
+            true ->
+                 false
+         end,
          if ?gc_use_old_ssl(GC) ->
                  {ssl_imp, old};
             true ->
