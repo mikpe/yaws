@@ -73,3 +73,5 @@ rel/yaws
 dialyzer_warnings
 deps/*
 .eunit/*
+.idea
+*.iml
