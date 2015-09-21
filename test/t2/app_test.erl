@@ -825,6 +825,7 @@ test_sslaccept_timeout() ->
 test_ssl_multipart_post() ->
     io:format("ssl_multipart_post_test\n", []),
     ok = application:start(crypto),
+    ok = application:start(asn1),
     ok = application:start(public_key),
     ok = application:start(ssl),
     Boundary = "----------------------------3e9876546ecf\r\n",
@@ -840,6 +841,7 @@ test_ssl_multipart_post() ->
     ?line {ok, "200", _, _} = Reply = ibrowse:send_req(Uri, Headers, post, Data, Options),
     ok = application:stop(ssl),
     ok = application:stop(public_key),
+    ok = application:stop(asn1),
     ok = application:stop(crypto),
     ok.
 

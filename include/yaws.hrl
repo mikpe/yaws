@@ -111,7 +111,8 @@
           password,
           cacertfile,
           ciphers,
-          cachetimeout
+          cachetimeout,
+          protocol_version
          }).
 
 
