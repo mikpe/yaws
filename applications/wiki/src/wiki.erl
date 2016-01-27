@@ -1,3 +1,4 @@
+%% -*- coding: latin-1 -*-
 %    -*- Erlang -*-
 %    File:        wiki.erl  (~jb/work/wiki/src/wiki.erl)
 %    Author:    Joe Armstrong

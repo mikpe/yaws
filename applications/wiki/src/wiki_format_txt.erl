@@ -1,3 +1,4 @@
+%% -*- coding: latin-1 -*-
 -module(wiki_format_txt).
 
 %% File    : wiki_format_txt.erl
