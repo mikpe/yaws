@@ -491,7 +491,10 @@ display_susp1(Fd, {Pid, Reds0, LM0}) ->
         Info ->
             Reds1 = fetch(reductions, Info),
             LM1 = fetch(message_queue_len, Info),
-            Msgs = fetch(messages, Info),
+            Msgs = case process_info(Pid, messages) of
+                       {messages, M} -> M;
+                       _ -> []
+                   end,
 	    Bt = case process_info(Pid, backtrace) of
 		     {backtrace, Bin} ->
 			 binary_to_list(Bin);
