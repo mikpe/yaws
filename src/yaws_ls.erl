@@ -253,7 +253,7 @@ out(A) ->
 
 
 generate_random_fn() ->
-    Bytes = try crypto:rand_bytes(64) of
+    Bytes = try crypto:strong_rand_bytes(64) of
                 B when is_bitstring(B) ->
                     B
             catch _:_ ->
