@@ -1982,22 +1982,7 @@ handle_auth(ARG, _Auth_H, Auth_methods=#auth{users=[],pam=false,mod=[]}, Ret) ->
     {Ret, Auth_methods};
 
 handle_auth(ARG, Auth_H, Auth_methods = #auth{mod = Mod}, Ret) when Mod /= [] ->
-    case catch Mod:auth(ARG, Auth_methods) of
-        {'EXIT', Reason} ->
-            ST = erlang:get_stacktrace(),
-            L = ?F("authmod crashed ~n~p:auth(~p, ~n ~p) \n"
-                   "Reason: ~p~n"
-                   "Stack: ~p~n",
-                   [Mod, ARG, Auth_methods, Reason,
-                    ST]),
-            handle_crash(ARG, L, ST),
-            CliSock = case yaws_api:get_sslsocket(ARG#arg.clisock) of
-                          {ok, SslSock} -> SslSock;
-                          undefined     -> ARG#arg.clisock
-                      end,
-            deliver_accumulated(CliSock),
-            exit(normal);
-
+    try Mod:auth(ARG, Auth_methods) of
         %% appmod means the auth headers are undefined, i.e. false.
         %% TODO: change so that authmods simply return true/false
         {true, User} ->
@@ -2016,6 +2001,20 @@ handle_auth(ARG, Auth_H, Auth_methods = #auth{mod = Mod}, Ret) when Mod /= [] ->
         _ ->
             maybe_auth_log(403, ARG),
             false_403
+    catch
+        _:Reason ->
+            L = ?F("authmod crashed ~n~p:auth(~p, ~n ~p) \n"
+                   "Reason: ~p~n"
+                   "Stack: ~p~n",
+                   [Mod, ARG, Auth_methods, Reason,
+                    erlang:get_stacktrace()]),
+            handle_crash(ARG, L),
+            CliSock = case yaws_api:get_sslsocket(ARG#arg.clisock) of
+                          {ok, SslSock} -> SslSock;
+                          undefined     -> ARG#arg.clisock
+                      end,
+            deliver_accumulated(CliSock),
+            exit(normal)
     end;
 
 %% if the headers are undefined we do not need to check Pam or Users
