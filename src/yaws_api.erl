@@ -2510,8 +2510,9 @@ setconf(GC0, Groups0, CheckCertsChanged) ->
                    end,
     if
         CertsChanged ->
-            application:stop(ssl),
-            application:start(ssl);
+            Fmt = "A cert used by Yaws may have been changed. "
+                  "GC0=\"~p\", Groups0=\"~p\"",
+            error_logger:warning_msg(Fmt, [GC0, Groups0]);
         true ->
             ok
     end,
