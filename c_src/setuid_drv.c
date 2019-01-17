@@ -121,6 +121,12 @@ static void setuid_stop(ErlDrvData drv_data)
 
 DRIVER_INIT(setuid_drv)
 {
+    /* The 'event' field is removed in OTP 21, so to ensure that we
+     * initialize this struct correctly for both OTP 20 and 21 we set
+     * the entire struct to 0 first.
+     */
+    memset(&setuid_driver_entry, 0, sizeof(ErlDrvEntry));
+
     setuid_driver_entry.init            = NULL;   /* Not used */
     setuid_driver_entry.start           = setuid_start;
     setuid_driver_entry.stop            = setuid_stop;
@@ -136,7 +142,6 @@ DRIVER_INIT(setuid_drv)
     setuid_driver_entry.ready_async     = NULL;
     setuid_driver_entry.flush           = NULL;
     setuid_driver_entry.call            = NULL;
-    setuid_driver_entry.event           = NULL;
     setuid_driver_entry.extended_marker = ERL_DRV_EXTENDED_MARKER;
     setuid_driver_entry.major_version   = ERL_DRV_EXTENDED_MAJOR_VERSION;
     setuid_driver_entry.minor_version   = ERL_DRV_EXTENDED_MINOR_VERSION;
