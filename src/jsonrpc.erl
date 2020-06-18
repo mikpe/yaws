@@ -57,10 +57,10 @@ call(URL, Options, Payload) ->
                    end,
         decode_call_payload(RespBody)
     catch
-        error:Err->
+        error:Err:St ->
             error_logger:error_report([{'json_rpc:call', error},
                                        {error, Err},
-                                       {stack, erlang:get_stacktrace()}]),
+                                       {stack, St}]),
             {error,Err}
     end.
 

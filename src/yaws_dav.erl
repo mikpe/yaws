@@ -61,8 +61,8 @@ lock(A) ->
     catch
         Status ->
             status(Status);
-        _Error:Reason ->
-            ?elog("unexpected error: ~p~n~p~n",[Reason,erlang:get_stacktrace()]),
+        _Error:Reason:ST ->
+            ?elog("unexpected error: ~p~n~p~n",[Reason,ST]),
             status(500,[{'D:error',[{'xmlns:D',"DAV:"}],[Reason]}])
     end.
 
@@ -75,8 +75,8 @@ unlock(A) ->
     catch
         Status ->
             status(Status);
-        _Error:Reason ->
-            ?elog("unexpected error: ~p~n~p~n",[Reason,erlang:get_stacktrace()]),
+        _Error:Reason:ST ->
+            ?elog("unexpected error: ~p~n~p~n",[Reason,ST]),
             status(500,[{'D:error',[{'xmlns:D',"DAV:"}],[Reason]}])
     end.
 
@@ -93,8 +93,8 @@ delete(A) ->
     catch
         Status ->
             status(Status);
-        _Error:Reason ->
-            ?elog("unexpected error: ~p~n~p~n",[Reason,erlang:get_stacktrace()]),
+        _Error:Reason:ST ->
+            ?elog("unexpected error: ~p~n~p~n",[Reason,ST]),
             status(500,[{'D:error',[{'xmlns:D',"DAV:"}],[Reason]}])
     end.
 
@@ -174,8 +174,8 @@ put(SC, ARG) ->
         exit:normal -> exit(normal);
         Status ->
             status(Status);
-        _Error:Reason ->
-            ?elog("unexpected error: ~p~n~p~n",[Reason,erlang:get_stacktrace()]),
+        _Error:Reason:ST ->
+            ?elog("unexpected error: ~p~n~p~n",[Reason,ST]),
             status(500,[{'D:error',[{'xmlns:D',"DAV:"}],[Reason]}])
     end.
 
@@ -296,8 +296,8 @@ propfind(A) ->
             status(Status,Response1);
         Status ->
             status(Status);
-        _Error:Reason ->
-            ?elog("unexpected error: ~p~n~p~n",[Reason,erlang:get_stacktrace()]),
+        _Error:Reason:ST ->
+            ?elog("unexpected error: ~p~n~p~n",[Reason,ST]),
             status(500,[{'D:error',[{'xmlns:D',"DAV:"}],[Reason]}])
     end.
 
@@ -347,8 +347,8 @@ proppatch(A) ->
             status(Status,Response1);
         Status ->
             status(Status);
-        _Error:Reason ->
-            ?elog("unexpected error: ~p~n~p~n",[Reason,erlang:get_stacktrace()]),
+        _Error:Reason:ST ->
+            ?elog("unexpected error: ~p~n~p~n",[Reason,ST]),
             status(500,[{'D:error',[{'xmlns:D',"DAV:"}],[Reason]}])
     end.
 

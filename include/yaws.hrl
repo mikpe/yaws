@@ -375,7 +375,7 @@
 
 %% Typically used in error printouts as in:
 %% error_logger:format("Err ~p at ~p~n", [Reason, ?stack()])
--define(stack(), try throw(1) catch _:_ -> erlang:get_stacktrace() end).
+-define(stack(), try throw(1) catch _:_:_ST_ -> _ST_ end).
 
 
 %%% The following is for emacs, do not remove

@@ -77,8 +77,8 @@ handle_call({lock,Path,Lock}, _From, Table) ->
         {reply, {ok,Id}, Table1}
     catch
         Status -> {reply, {error, Status}, Table};
-        _Error:Reason ->
-            ?elog("Unexpected error: ~p~n~p~n",[Reason,erlang:get_stacktrace()]),
+        _Error:Reason:ST ->
+            ?elog("Unexpected error: ~p~n~p~n",[Reason,ST]),
             {reply, {error, Reason}, Table}
     end;
 handle_call({unlock,Path,Id}, _From, Table) ->
