@@ -18,8 +18,8 @@ run(Eunits) ->
                       end, Eunits),
         erlang:halt(0)
     catch
-        _:_ ->
-            io:format("Test failure ~p~n", [erlang:get_stacktrace()]),
+        _:_:ST ->
+            io:format("Test failure ~p~n", [ST]),
             receive nono -> ok
             after 1000 -> ok
             end,

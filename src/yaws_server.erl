@@ -2002,12 +2002,12 @@ handle_auth(ARG, Auth_H, Auth_methods = #auth{mod = Mod}, Ret) when Mod /= [] ->
             maybe_auth_log(403, ARG),
             false_403
     catch
-        _:Reason ->
+        _:Reason:ST ->
             L = ?F("authmod crashed ~n~p:auth(~p, ~n ~p) \n"
                    "Reason: ~p~n"
                    "Stack: ~p~n",
                    [Mod, ARG, Auth_methods, Reason,
-                    erlang:get_stacktrace()]),
+                    ST]),
             handle_crash(ARG, L),
             CliSock = case yaws_api:get_sslsocket(ARG#arg.clisock) of
                           {ok, SslSock} -> SslSock;
@@ -2710,8 +2710,8 @@ deliver_dyn_part(CliSock,                       % essential params
                    Res = YawsFun(Arg),
                    handle_out_reply(Res, LineNo, YawsFile, UT, Arg)
                catch
-                   Class:Exc ->
-                       handle_out_reply({throw, Class, Exc}, LineNo, YawsFile, UT, Arg)
+                   Class:Exc:St ->
+                       handle_out_reply({throw, Class, Exc, St}, LineNo, YawsFile, UT, Arg)
                end,
     case OutReply of
         {get_more, Cont, State} when element(1, Arg#arg.clidata) == partial  ->
@@ -3312,7 +3312,7 @@ handle_out_reply(ok, _LineNo, _YawsFile, _UT, _ARG) ->
     ok;
 
 handle_out_reply({'EXIT', Err}, LineNo, YawsFile, _UT, ARG) ->
-    ST = erlang:get_stacktrace(),
+    ST = ?stack(),
     L = ?F("~n~nERROR erlang  code  crashed:~n "
            "File: ~s:~w~n"
            "Reason: ~p~nReq: ~p~n"
@@ -3320,12 +3320,12 @@ handle_out_reply({'EXIT', Err}, LineNo, YawsFile, _UT, ARG) ->
            [YawsFile, LineNo, Err, ARG#arg.req, ST]),
     handle_crash(ARG, L, ST);
 
-handle_out_reply({throw, Class, Exc}, LineNo, YawsFile, _UT, ARG) ->
+handle_out_reply({throw, Class, Exc, St}, LineNo, YawsFile, _UT, ARG) ->
     L = ?F("~n~nERROR erlang code threw an uncaught exception:~n "
            "File: ~s:~w~n"
            "Class: ~p~nException: ~p~nReq: ~p~n"
            "Stack: ~p~n",
-           [YawsFile, LineNo, Class, Exc, ARG#arg.req, erlang:get_stacktrace()]),
+           [YawsFile, LineNo, Class, Exc, ARG#arg.req, St]),
     handle_crash(ARG, L);
 
 handle_out_reply({get_more, Cont, State}, _LineNo, _YawsFile, _UT, _ARG) ->
